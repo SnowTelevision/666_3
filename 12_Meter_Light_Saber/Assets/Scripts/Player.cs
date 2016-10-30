@@ -73,6 +73,10 @@ public class Player : MonoBehaviour {
         if(isAttacking) //Cannot move while attacking
         {
             input.x = 0;
+            if(controller.collisions.below)
+            {
+                targetVelocityX = 0;
+            }
         }
 
         if (!isAttacking) //Allow horizontal move while not attacking
@@ -180,35 +184,44 @@ public class Player : MonoBehaviour {
 
         if(Input.GetButtonDown("Fire1") && !isAttacking && !isDodging) //Attack with light saber
         {
+            print("attack");
             isAttacking = true;
             attackPrepSession = attackPrep();
             StartCoroutine(attackPrepSession);
         }
 
-        if(Input.GetButtonDown("Fire2") && !isAttacking && !isDodging) //Dodge move
-        {
-            isDodging = true;
-            //dodge;
-        }
-
-        if(Input.GetButtonDown("Fire1") && isAttacking && isAttackPrep) //Cancel attack
+        else if (Input.GetButtonDown("Fire1") && isAttacking && isAttackPrep) //Cancel attack
         {
             StopCoroutine(attackPrepSession);
             isAttacking = false;
             isAttackPrep = false;
+        }
+
+        if (Input.GetButtonDown("Fire2") && !isAttacking && !isDodging) //Dodge move
+        {
+            //isDodging = true;
+            //dodge;
+
         }
 	}
 
     public IEnumerator attackPrep() //Preparation for attacking
     {
         isAttackPrep = true;
+        print("attack");
         yield return new WaitForSeconds(attackPrepTime);
-
+        print("attack");
         if (isAttackPrep)
         {
             lightSaber.Swing(aim.aimingAngle);
         }
 
+        while(lightSaber.Swinging)
+        {
+            yield return null;
+        }
+
         isAttackPrep = false;
+        isAttacking = false;
     }
 }

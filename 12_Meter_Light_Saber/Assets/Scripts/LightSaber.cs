@@ -18,11 +18,13 @@ public class LightSaber : MonoBehaviour
     public bool Swinging { get; private set; }
 
     private LineRenderer line;
+    private int layerMask = 0;
 
     void OnEnable()
     {
         line = GetComponent<LineRenderer>();
         line.enabled = false;
+        layerMask = ~LayerMask.GetMask("Player");
     }
 
     private float startAngle, endAngle, swingTime;
@@ -48,11 +50,11 @@ public class LightSaber : MonoBehaviour
 
         if (line.enabled)
         {
-            UpdateSaberLine();
+            UpdateSaberLine(true);
         }
     }
 
-    void UpdateSaberLine()
+    void UpdateSaberLine(bool collisionTest = false)
     {
         Vector3 start = transform.position;
         Vector3 tip = transform.position;
@@ -67,6 +69,32 @@ public class LightSaber : MonoBehaviour
 
         line.SetPosition(1, tip);
         line.SetWidth(width, width);
+
+        if (collisionTest)
+        {
+            Vector2 dir = (tip - start).normalized;
+            Vector2 rDir = new Vector2(dir.y, -dir.x);
+            float halfWidth = width * 0.5f;
+            Collider2D hitted = null;
+            {
+                RaycastHit2D hit = Physics2D.Raycast((Vector2)start + rDir * halfWidth, dir, length, layerMask);
+                if (hit.collider)
+                {
+                    hitted = hit.collider;
+                }
+            }
+            {
+                RaycastHit2D hit = Physics2D.Raycast((Vector2)start - rDir * halfWidth, dir, length, layerMask);
+                if (hit.collider)
+                {
+                    hitted = hit.collider;
+                }
+            }
+            if (hitted)
+            {
+                hitted.SendMessage("OnSaberCollided", this, SendMessageOptions.DontRequireReceiver);
+            }
+        }
     }
 
     public void HideSaber()

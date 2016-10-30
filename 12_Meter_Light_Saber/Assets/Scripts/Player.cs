@@ -245,7 +245,7 @@ public class Player :  NetworkBehaviour{
             StartCoroutine(attackPrepSession);
         }
 
-        else if (Input.GetButtonDown("Fire1") && isAttacking && isAttackPrep) //Cancel attack
+        else if (Input.GetKeyDown(KeyCode.Q) && isAttacking && isAttackPrep) //Cancel attack
         {
             StopCoroutine(attackPrepSession);
             isAttacking = false;

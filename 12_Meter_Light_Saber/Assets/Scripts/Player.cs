@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
-
+using UnityEngine.Networking;
 [RequireComponent(typeof(Controller2D))]
-public class Player : MonoBehaviour {
+public class Player :  NetworkBehaviour{
 
     public float jumpHeight;
     public float timeToJumpApex;
@@ -41,6 +41,13 @@ public class Player : MonoBehaviour {
     AimingController aim;
     Teleporter teleporte;
 
+    NetworkTransform netTrans;
+
+    private delegate void SwingSaberDelegate(float aimingAngle);
+
+    [SyncEvent]
+    private event SwingSaberDelegate EventSwingSaberEvent;
+
     public float dodgeDistance;
     public float dodgeCollisionDetectDist;
 
@@ -53,6 +60,8 @@ public class Player : MonoBehaviour {
     Material playerMaterial;
     public Color normalColor;
     public Color attackPrepColor;
+    [SyncVar(hook = "OnColorChange")]
+    public int colorState=0; 
 
 	// Use this for initialization
 	void Start ()
@@ -62,6 +71,14 @@ public class Player : MonoBehaviour {
         aim = GetComponent<AimingController>();
         teleporte = GetComponent<Teleporter>();
         playerMaterial = GetComponent<Renderer>().sharedMaterial;
+        netTrans = GetComponent<NetworkTransform>();
+
+        if (gameObject.layer == LayerMask.NameToLayer("Player"))
+            lightSaber.collisionlayerMask = LayerMask.GetMask("Enemy");
+        else
+            lightSaber.collisionlayerMask = LayerMask.GetMask("Player");
+        lightSaber.collisionTest = isServer;
+        EventSwingSaberEvent += lightSaber.Swing;
 
         initialMoveSpeed = moveSpeed;
         gravity = -(2 * jumpHeight) / Mathf.Pow(timeToJumpApex, 2);
@@ -88,9 +105,22 @@ public class Player : MonoBehaviour {
 
     }
 	
+    void FixedUpdate()
+    {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+        netTrans.SetDirtyBit(~0u);
+    }
+
 	// Update is called once per frame
 	void Update ()
     {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         int wallDirX = (controller.collisions.left) ? -1 : 1;
 
@@ -219,7 +249,7 @@ public class Player : MonoBehaviour {
         {
             StopCoroutine(attackPrepSession);
             isAttacking = false;
-            playerMaterial.color = normalColor;
+            CmdChangeColor(0);
             isAttackPrep = false;
         }
 
@@ -231,20 +261,21 @@ public class Player : MonoBehaviour {
             isDodging = false;
         }
 	}
-
     public IEnumerator attackPrep() //Preparation for attacking
     {
+        if (!isLocalPlayer) {
+            yield break;
+        }
         isAttackPrep = true;
-        playerMaterial.color = attackPrepColor;
+        CmdChangeColor(1);
 
         //print("attack");
         yield return new WaitForSeconds(attackPrepTime);
         //print("attack");
         if (isAttackPrep)
         {
-            lightSaber.Swing(aim.aimingAngle);
-            playerMaterial.color = normalColor;
-
+            CmdSwingSaber(aim.aimingAngle);
+            CmdChangeColor(0);
             isAttackPrep = false;
         }
 
@@ -254,5 +285,49 @@ public class Player : MonoBehaviour {
         }
 
         isAttacking = false;
+    }
+
+    public override void OnStartLocalPlayer()
+    {
+        normalColor = Color.blue;
+        GetComponent<MeshRenderer>().material.color = normalColor;
+        print(GetComponent<NetworkTransform>().GetNetworkChannel());
+        gameObject.layer = LayerMask.NameToLayer("Player");
+    }
+    [Command]
+    public void CmdChangeColor(int color) {
+        colorState = color;
+    }
+    [Command]
+    public void CmdSwingSaber(float aimingAngle)
+    {
+        EventSwingSaberEvent(aimingAngle);
+    }
+    public void OnColorChange(int color) {
+        if (color == 0)
+        {
+            GetComponent<MeshRenderer>().material.color = normalColor;
+        }
+        else if (color == 1) {
+            GetComponent<MeshRenderer>().material.color = attackPrepColor;
+        }
+    }
+
+    [ClientRpc]
+    void RpcRespawon()
+    {
+        var pos = FindObjectsOfType<NetworkStartPosition>();
+        transform.position = pos[Random.Range(0, pos.Length)].transform.position;
+    }
+
+    [Command]
+    void CmdDie()
+    {
+        RpcRespawon();
+    }
+
+    void OnSaberCollided()
+    {
+        CmdDie();
     }
 }

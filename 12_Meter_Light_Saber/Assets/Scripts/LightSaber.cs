@@ -15,16 +15,18 @@ public class LightSaber : MonoBehaviour
 
     public float swingDuration = 0.2f;
 
-    public bool Swinging { get; private set; }
+    public bool collisionTest = false;
 
-    private LineRenderer line;
-    private int layerMask = 0;
+    public bool Swinging { get; private set; }
+    
+    public LineRenderer line;
+    public int collisionlayerMask = 0;
 
     void OnEnable()
     {
         line = GetComponent<LineRenderer>();
         line.enabled = false;
-        layerMask = ~LayerMask.GetMask("Player");
+        collisionlayerMask = LayerMask.GetMask("Enemy");
     }
 
     private float startAngle, endAngle, swingTime;
@@ -50,7 +52,7 @@ public class LightSaber : MonoBehaviour
 
         if (line.enabled)
         {
-            UpdateSaberLine(true);
+            UpdateSaberLine(collisionTest);
         }
     }
 
@@ -77,14 +79,14 @@ public class LightSaber : MonoBehaviour
             float halfWidth = width * 0.5f;
             Collider2D hitted = null;
             {
-                RaycastHit2D hit = Physics2D.Raycast((Vector2)start + rDir * halfWidth, dir, length, layerMask);
+                RaycastHit2D hit = Physics2D.Raycast((Vector2)start + rDir * halfWidth, dir, length, collisionlayerMask);
                 if (hit.collider)
                 {
                     hitted = hit.collider;
                 }
             }
             {
-                RaycastHit2D hit = Physics2D.Raycast((Vector2)start - rDir * halfWidth, dir, length, layerMask);
+                RaycastHit2D hit = Physics2D.Raycast((Vector2)start - rDir * halfWidth, dir, length, collisionlayerMask);
                 if (hit.collider)
                 {
                     hitted = hit.collider;
@@ -106,7 +108,7 @@ public class LightSaber : MonoBehaviour
     {
         line.enabled = true;
     }
-
+    
     public void Swing(float aimingAngle)
     {
         if (aimingAngle > 0.0f)

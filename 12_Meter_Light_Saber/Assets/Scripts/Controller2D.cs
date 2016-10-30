@@ -16,6 +16,10 @@ public class Controller2D : MonoBehaviour {
     float horizontalRaySpacing;
     float verticalRaySpacing;
 
+    public bool canWallJump;
+    public bool canWallSlide;
+    public bool autoWallSlide;
+
     public CollisionInfo collisions;
 
     BoxCollider2D collidar;
@@ -26,6 +30,7 @@ public class Controller2D : MonoBehaviour {
     {
         collidar = GetComponent<BoxCollider2D>();
         CalculateRaySpacing();
+        collisions.faceDir = 1;
     }
 	
 	// Update is called once per frame
@@ -39,12 +44,17 @@ public class Controller2D : MonoBehaviour {
         collisions.Reset();
         collisions.velocityOld = velocity;
 
+        if (velocity.x != 0)
+        {
+            collisions.faceDir = (int)Mathf.Sign(velocity.x);
+        }
+
         if (velocity.y < 0)
         {
             DescendSlope(ref velocity);
         }
 
-        if (velocity.x != 0)
+        if (velocity.x != 0 || canWallSlide)
         {
             HorizontalCollisions(ref velocity);
         }
@@ -62,8 +72,13 @@ public class Controller2D : MonoBehaviour {
 
     void HorizontalCollisions(ref Vector3 velocity)
     {
-        float directionX = Mathf.Sign(velocity.x);
+        float directionX = collisions.faceDir;
         float rayLength = Mathf.Abs(velocity.x) + skinWidth;
+
+        if(Mathf.Abs(velocity.x) < skinWidth && autoWallSlide)
+        {
+            rayLength = 2 * skinWidth;
+        }
 
         for (int i = 0; i < horizontalRayCount; i++)
         {
@@ -243,6 +258,7 @@ public class Controller2D : MonoBehaviour {
         public bool descendingSlope;
         public float slopeAngle, slopeAngleOld;
         public Vector3 velocityOld;
+        public int faceDir; //1 = facing right, -1 = facing left
 
         public void Reset()
         {

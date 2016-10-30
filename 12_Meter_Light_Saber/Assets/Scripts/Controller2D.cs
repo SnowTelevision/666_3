@@ -6,9 +6,9 @@ public class Controller2D : MonoBehaviour {
 
     public LayerMask collisionMask;
 
-    const float skinWidth = .015f; //The length of rayCast
-    public int horizontalRayCount = 4;
-    public int verticalRayCount = 4;
+    float skinWidth = .015f; //The length of rayCast
+    public int horizontalRayCount;
+    public int verticalRayCount;
 
     public float maxClimbAngle;
     public float maxDescendAngle;
@@ -31,6 +31,7 @@ public class Controller2D : MonoBehaviour {
         collidar = GetComponent<BoxCollider2D>();
         CalculateRaySpacing();
         collisions.faceDir = 1;
+        //skinWidth *= horizontalRayCount / 4;
     }
 	
 	// Update is called once per frame

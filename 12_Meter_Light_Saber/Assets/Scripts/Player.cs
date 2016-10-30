@@ -10,6 +10,7 @@ public class Player : MonoBehaviour {
     public float accelerationTimeAirorne;
     public float accelerationTimeGrounded;
     public float moveSpeed;
+    float initialMoveSpeed;
 
     public Vector2 wallJumpClimb;
     public Vector2 wallJumpOff;
@@ -38,6 +39,10 @@ public class Player : MonoBehaviour {
     Controller2D controller;
     LightSaber lightSaber;
     AimingController aim;
+    Teleporter teleporte;
+
+    public float dodgeDistance;
+    public float dodgeCollisionDetectDist;
 
     public bool isDodging;
     public bool isAttacking;
@@ -45,13 +50,20 @@ public class Player : MonoBehaviour {
 
     IEnumerator attackPrepSession;
 
+    Material playerMaterial;
+    public Color normalColor;
+    public Color attackPrepColor;
+
 	// Use this for initialization
 	void Start ()
     {
         controller = GetComponent<Controller2D>();
         lightSaber = GetComponentInChildren<LightSaber>();
         aim = GetComponent<AimingController>();
+        teleporte = GetComponent<Teleporter>();
+        playerMaterial = GetComponent<Renderer>().sharedMaterial;
 
+        initialMoveSpeed = moveSpeed;
         gravity = -(2 * jumpHeight) / Mathf.Pow(timeToJumpApex, 2);
         jumpVelocity = Mathf.Abs(gravity) * timeToJumpApex;
         print("Gravity: " + gravity + " Jump Velocity: " + jumpVelocity);
@@ -62,6 +74,18 @@ public class Player : MonoBehaviour {
 
         isAttacking = false;
         isDodging = false;
+
+        controller.horizontalRayCount = (int)(controller.horizontalRayCount * transform.localScale.x);
+        controller.verticalRayCount = (int)(controller.verticalRayCount * transform.localScale.y);
+        jumpHeight *= transform.localScale.y;
+        moveSpeed *= transform.localScale.x;
+        wallJumpClimb.x *= transform.localScale.x;
+        wallJumpClimb.y *= transform.localScale.y;
+        wallJumpOff.x *= transform.localScale.x;
+        wallJumpOff.y *= transform.localScale.y;
+        wallLeap.x *= transform.localScale.x;
+        wallLeap.y *= transform.localScale.y;
+
     }
 	
 	// Update is called once per frame
@@ -93,7 +117,8 @@ public class Player : MonoBehaviour {
         {
             wallSliding = true;
             accelerationTimeAirorne = 0.2f;
-            moveSpeed = 12;
+            moveSpeed = initialMoveSpeed * 2;
+            moveSpeed *= transform.localScale.x;
 
             if (velocity.y < -wallSlideSpeedMax && (controller.GetComponent<Controller2D>().autoWallSlide || velocity.x != 0)) //Set the maximum drop speed when sliding on wall
             {
@@ -125,7 +150,7 @@ public class Player : MonoBehaviour {
         if(controller.collisions.below) //Set physics when not wall sliding
         {
             accelerationTimeAirorne = 0;
-            moveSpeed = 6;
+            moveSpeed = initialMoveSpeed * transform.localScale.x;
         }
 
         if(controller.collisions.above || controller.collisions.below) //Stop accumulating gravity if is on ground & prevent going up through roof
@@ -184,7 +209,7 @@ public class Player : MonoBehaviour {
 
         if(Input.GetButtonDown("Fire1") && !isAttacking && !isDodging) //Attack with light saber
         {
-            print("attack");
+            //print("attack");
             isAttacking = true;
             attackPrepSession = attackPrep();
             StartCoroutine(attackPrepSession);
@@ -194,26 +219,33 @@ public class Player : MonoBehaviour {
         {
             StopCoroutine(attackPrepSession);
             isAttacking = false;
+            playerMaterial.color = normalColor;
             isAttackPrep = false;
         }
 
         if (Input.GetButtonDown("Fire2") && !isAttacking && !isDodging) //Dodge move
         {
-            //isDodging = true;
-            //dodge;
-
+            isDodging = true;
+            velocity.y = 0;
+            teleporte.Teleport(aim.aimingDir, dodgeDistance, dodgeCollisionDetectDist);
+            isDodging = false;
         }
 	}
 
     public IEnumerator attackPrep() //Preparation for attacking
     {
         isAttackPrep = true;
-        print("attack");
+        playerMaterial.color = attackPrepColor;
+
+        //print("attack");
         yield return new WaitForSeconds(attackPrepTime);
-        print("attack");
+        //print("attack");
         if (isAttackPrep)
         {
             lightSaber.Swing(aim.aimingAngle);
+            playerMaterial.color = normalColor;
+
+            isAttackPrep = false;
         }
 
         while(lightSaber.Swinging)
@@ -221,7 +253,6 @@ public class Player : MonoBehaviour {
             yield return null;
         }
 
-        isAttackPrep = false;
         isAttacking = false;
     }
 }

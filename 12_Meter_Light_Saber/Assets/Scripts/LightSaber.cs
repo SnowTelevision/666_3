@@ -30,11 +30,11 @@ public class LightSaber : MonoBehaviour
     private float startAngle, endAngle, swingTime;
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         if (Swinging)
         {
-            swingTime += Time.fixedDeltaTime;
+            swingTime += Time.deltaTime;
 
             if (swingTime < swingDuration)
             {

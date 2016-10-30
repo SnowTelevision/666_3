@@ -36,15 +36,21 @@ public class Player : MonoBehaviour {
     float targetVelocityX = 0;
 
     Controller2D controller;
+    LightSaber lightSaber;
+    AimingController aim;
 
     public bool isDodging;
     public bool isAttacking;
     public bool isAttackPrep;
 
+    IEnumerator attackPrepSession;
+
 	// Use this for initialization
 	void Start ()
     {
         controller = GetComponent<Controller2D>();
+        lightSaber = GetComponentInChildren<LightSaber>();
+        aim = GetComponent<AimingController>();
 
         gravity = -(2 * jumpHeight) / Mathf.Pow(timeToJumpApex, 2);
         jumpVelocity = Mathf.Abs(gravity) * timeToJumpApex;
@@ -175,7 +181,8 @@ public class Player : MonoBehaviour {
         if(Input.GetButtonDown("Fire1") && !isAttacking && !isDodging) //Attack with light saber
         {
             isAttacking = true;
-            StartCoroutine(attackPrep());
+            attackPrepSession = attackPrep();
+            StartCoroutine(attackPrepSession);
         }
 
         if(Input.GetButtonDown("Fire2") && !isAttacking && !isDodging) //Dodge move
@@ -186,6 +193,7 @@ public class Player : MonoBehaviour {
 
         if(Input.GetButtonDown("Fire1") && isAttacking && isAttackPrep) //Cancel attack
         {
+            StopCoroutine(attackPrepSession);
             isAttacking = false;
             isAttackPrep = false;
         }
@@ -195,7 +203,12 @@ public class Player : MonoBehaviour {
     {
         isAttackPrep = true;
         yield return new WaitForSeconds(attackPrepTime);
+
+        if (isAttackPrep)
+        {
+            lightSaber.Swing(aim.aimingAngle);
+        }
+
         isAttackPrep = false;
-        //attack
     }
 }

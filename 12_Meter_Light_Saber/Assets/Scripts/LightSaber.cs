@@ -8,13 +8,12 @@ public class LightSaber : MonoBehaviour
     public float length = 12;
     public float angle = 0;
     public float offset = 0;
-    
+    public float width = 0.2f;
+
     public float upperAngle = Mathf.PI / 4;
     public float lowerAngle = Mathf.PI / 4;
 
-    public float prepareDuration = 0.1f;
     public float swingDuration = 0.2f;
-    public float frozenDuration = 0.1f;
 
     public bool Swinging { get; private set; }
 
@@ -25,9 +24,9 @@ public class LightSaber : MonoBehaviour
         line = GetComponent<LineRenderer>();
         line.enabled = false;
     }
-    
+
     private float startAngle, endAngle, swingTime;
-    
+
     // Update is called once per frame
     void FixedUpdate()
     {
@@ -35,41 +34,49 @@ public class LightSaber : MonoBehaviour
         {
             swingTime += Time.fixedDeltaTime;
 
-            if (swingTime < prepareDuration)
-            {
-                angle = startAngle;
-            }
-            else if (swingTime < prepareDuration + swingDuration)
+            if (swingTime < swingDuration)
             {
                 float t = swingTime / swingDuration;
                 angle = Mathf.Lerp(startAngle, endAngle, t);
             }
-            else if (swingTime < prepareDuration + swingDuration + frozenDuration)
-            {
-                angle = endAngle;
-            }
             else
             {
                 Swinging = false;
+                HideSaber();
             }
         }
 
-        line.enabled = Swinging;
-        if (Swinging)
+        if (line.enabled)
         {
-            Vector3 start = transform.position;
-            Vector3 tip = transform.position;
-
-            start.x = start.x + Mathf.Sin(angle) * offset;
-            start.y = start.y + Mathf.Cos(angle) * offset;
-
-            line.SetPosition(0, start);
-
-            tip.x = tip.x + Mathf.Sin(angle) * (offset + length);
-            tip.y = tip.y + Mathf.Cos(angle) * (offset + length);
-
-            line.SetPosition(1, tip);
+            UpdateSaberLine();
         }
+    }
+
+    void UpdateSaberLine()
+    {
+        Vector3 start = transform.position;
+        Vector3 tip = transform.position;
+
+        start.x = start.x + Mathf.Sin(angle) * offset;
+        start.y = start.y + Mathf.Cos(angle) * offset;
+
+        line.SetPosition(0, start);
+
+        tip.x = tip.x + Mathf.Sin(angle) * (offset + length);
+        tip.y = tip.y + Mathf.Cos(angle) * (offset + length);
+
+        line.SetPosition(1, tip);
+        line.SetWidth(width, width);
+    }
+
+    public void HideSaber()
+    {
+        line.enabled = false;
+    }
+
+    public void ShowSaber()
+    {
+        line.enabled = true;
     }
 
     public void Swing(float aimingAngle)
@@ -84,7 +91,11 @@ public class LightSaber : MonoBehaviour
             startAngle = aimingAngle + upperAngle;
             endAngle = aimingAngle - lowerAngle;
         }
+        angle = startAngle;
         swingTime = 0.0f;
         Swinging = true;
+        UpdateSaberLine();
+        ShowSaber();
     }
+
 }
